@@ -1,0 +1,169 @@
+import random
+
+letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+           'u', 'v',
+           'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+           'Q', 'R',
+           'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+symbols = ['!', '#', '$', '%', '&', '(', ')', '*', '+']
+
+
+class PasswordGenerator:
+    def __init__(self):
+        self.nr_letters = random.randint(8, 10)
+        self.nr_symbols = random.randint(2, 4)
+        self.nr_numbers = random.randint(2, 4)
+        self.password_list = [random.choice(letters) for _ in range(self.nr_letters)]
+        self.password_list += [random.choice(symbols) for _ in range(self.nr_symbols)]
+        self.password_list += [random.choice(numbers) for _ in range(self.nr_numbers)]
+        self.password = ""
+        self.shuffle_characters()
+        self.generate_password()
+
+    def shuffle_characters(self):
+        random.shuffle(self.password_list)
+        self.password = "".join(self.password_list)
+
+    def generate_password(self):
+        return self.password
+
+
+
+import tkinter as tk
+import tkinter.ttk as ttk
+from tkinter import messagebox
+import pyclip
+import json
+
+from passwordgenerator import PasswordGenerator
+
+root = tk.Tk()
+
+
+class PasswordManager:
+    def __init__(self, master):
+        master.title("Password Manager")
+        self.window_x_size = 460
+        self.window_y_size = 350
+        self.screen_width = master.winfo_screenwidth()
+        self.screen_height = master.winfo_screenheight()
+        self.window_x_position = (self.screen_width / 2) - (self.window_x_size / 2)
+        self.window_y_position = (self.screen_height / 2) - (self.window_y_size / 2)
+        master.resizable(False, False)
+        root.geometry('%dx%d+%d+%d' % (self.window_x_size,
+                                       self.window_y_size, self.window_x_position, self.window_y_position))
+        root.config(padx=30)
+        self.style = ttk.Style()
+        self.style.configure("TEntry", relief=tk.SOLID, highlightthickness=1, highlightcolor="lightgray", border=False)
+        self.canvas_logo = tk.Canvas(width=200, height=200)
+        self.img_password = tk.PhotoImage(file="logo.png")
+        self.canvas_logo.create_image(100, 100, image=self.img_password)
+        self.canvas_logo.grid(row=0, column=1)
+        self.lbl_website = tk.Label(text="Website:")
+        self.lbl_website.grid(row=1, column=0, sticky=tk.E)
+        self.entry_website = ttk.Entry(width=33, style="TEntry")
+        self.entry_website.grid(row=1, column=1, sticky=tk.W, pady=2)
+        self.entry_website.focus()
+        self.btn_search = ttk.Button(text="Search", command=self.search_web)
+        self.btn_search.grid(row=1, column=2, sticky=tk.E)
+        self.lbl_email = tk.Label(text="E-mail/Username:")
+        self.entry_email = ttk.Entry(width=47, style="TEntry")
+        self.entry_email.insert(0, "ken.pino@gmail.com")
+        self.entry_email.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=2)
+        self.lbl_password = tk.Label(text="Password:")
+        self.lbl_password.grid(row=3, column=0, sticky=tk.E)
+        self.entry_password = ttk.Entry(width=33, style="TEntry")
+        self.entry_password.grid(row=3, column=1, sticky=tk.W, pady=2)
+        self.btn_generate_password = ttk.Button(text="Generate", command=self.generate_password)
+        self.btn_generate_password.grid(row=3, column=2, sticky=tk.E)
+                self.btn_add_password = ttk.Button(text="Add", width=46, command=self.save_password)
+                self.btn_add_password.grid(row=4, column=1, columnspan=2, sticky=tk.E)
+
+            def search_web(self):
+                if self.entry_website.get():
+                    website = self.entry_website.get().lower()
+                    try:
+                        with open("passwords.json", "r") as data_file:
+                            data = json.load(data_file)
+                    except FileNotFoundError:
+                        messagebox.showwarning("No file found.", "You need to enter some data first.")
+                    else:
+                        try:
+                            record = data[website]
+                        except KeyError:
+                            messagebox.showinfo("Record not found", f"No results where found searching for {website}")
+                        else:
+                            test = messagebox.showinfo(f"Record found for [{website}]",
+                                                       f"E-mail: {record['email']}\nPassword: {record['password']}")
+                            if test == "ok":
+                                pyclip.copy(record['password'])
+                else:
+                    messagebox.showwarning("Empty field", "The website field cannot be empty.")
+
+            def save_password(self):
+                website = self.entry_website.get().lower()
+                email = self.entry_email.get()
+                password = self.entry_password.get()
+                new_dictionary = {
+                    website: {
+                        "email": email,
+                        "password": password,
+                    }
+                }
+
+                if website and email and password:
+                    try:
+                        data_file = open("passwords.json", mode="r")
+                        data = json.load(data_file)
+                    except FileNotFoundError:
+                        with open("passwords.json", mode="w") as data_file:
+                            json.dump(new_dictionary, data_file, indent=4)
+                    else:
+                        data.update(new_dictionary)
+                        with open("passwords.json", mode="w") as data_file:
+                            json.dump(data, data_file, indent=4)
+                    finally:
+                        self.entry_website.delete(0, tk.END)
+                        self.entry_password.delete(0, tk.END)
+                        pyclip.copy(password)
+
+                else:
+                    messagebox.showwarning("Missing data", "Please fill in all the details")
+
+            def generate_password(self):
+
+                password = PasswordGenerator().generate_password()
+
+                self.entry_password.delete(0, tk.END)
+                self.entry_password.insert(0, password)
+
+
+        pm = PasswordManager(root)
+
+        root.mainloop()
+
+import string
+from secrets import SystemRandom
+
+r = SystemRandom()
+
+string.ascii_letters
+# all upper and lower cases letters in alphabet
+string.digits
+# all numbers from 0-9
+string.punctuation
+# all these special characters: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+password = (r.choices(string.ascii_letters, k=r.randint(8, 10)) +
+                    r.choices(string.digits, k=r.randint(2, 4)) +
+                    r.choices(string.punctuation, k=r.randint(2, 4)))
+        r.shuffle(password)
+        entries[2].insert(0, ''.join(password))
+
+
+
+
+        -------------
+
+
+        
